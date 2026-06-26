@@ -1,4 +1,3 @@
-
 import DocumentConverter from './components/DocumentConverter';
 
 function App() {
@@ -7,17 +6,20 @@ function App() {
       <header className="header">
         <h1>CloudConvert</h1>
         <p>
-          A fast, secure, frontend-only document converter.
-          Transform your images into professional PDFs entirely in your browser.
+          Drop any file — images, Word docs, spreadsheets, code, Markdown, HTML —
+          and download a clean PDF. No uploads. No servers. 100% in your browser.
         </p>
       </header>
-      
+
       <main>
         <DocumentConverter />
       </main>
-      
+
       <footer className="footer">
-        <p>&copy; {new Date().getFullYear()} CloudConvert. All processing happens locally on your device.</p>
+        <p>
+          &copy; {new Date().getFullYear()} CloudConvert &mdash; All conversion
+          happens locally on your device. Your files never leave your browser.
+        </p>
       </footer>
     </div>
   );

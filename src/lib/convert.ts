@@ -1,48 +1,53 @@
-import { PDFDocument } from 'pdf-lib';
+import type { FileCategory } from '../types/converter';
+import { convertImages } from './converters/imageConverter';
+import { convertText } from './converters/textConverter';
+import { convertDocument } from './converters/documentConverter';
+import { convertSpreadsheet } from './converters/spreadsheetConverter';
 
 /**
- * Converts a list of image files (JPEG, PNG) into a single PDF Document.
+ * CONVERTER ORCHESTRATOR
+ * ──────────────────────────────────────────────────────────
+ * Routes a batch of same-category files to the correct sub-module.
+ *
+ * IMPORTANT: Files passed here must all share the same category.
+ * The UI groups files by category before calling this.
  */
-export async function convertImagesToPdf(files: File[]): Promise<Blob> {
-  const pdfDoc = await PDFDocument.create();
+export async function convertFiles(
+  files: File[],
+  category: FileCategory
+): Promise<Blob> {
+  if (files.length === 0) throw new Error('No files to convert');
 
-  for (const file of files) {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    
-    let image;
-    
-    if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
-      image = await pdfDoc.embedJpg(bytes);
-    } else if (file.type === 'image/png') {
-      image = await pdfDoc.embedPng(bytes);
-    } else {
-      // Skip unsupported files for now, though we filter them in the dropzone
-      continue;
-    }
+  switch (category) {
+    case 'image':
+      return convertImages(files);
 
-    const { width, height } = image.scale(1);
-    const page = pdfDoc.addPage([width, height]);
-    page.drawImage(image, {
-      x: 0,
-      y: 0,
-      width,
-      height,
-    });
+    case 'document':
+      return convertDocument(files);
+
+    case 'spreadsheet':
+      return convertSpreadsheet(files);
+
+    case 'text':
+    case 'code':
+      return convertText(files);
+
+    case 'unsupported':
+    default:
+      throw new Error(`Unsupported file category: ${category}`);
   }
-
-  const pdfBytes = await pdfDoc.save();
-  return new Blob([pdfBytes as any], { type: 'application/pdf' });
 }
 
-export function formatBytes(bytes: number, decimals = 2) {
-  if (!+bytes) return '0 Bytes';
-
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+/**
+ * Trigger a browser download for a given Blob.
+ */
+export function triggerDownload(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
